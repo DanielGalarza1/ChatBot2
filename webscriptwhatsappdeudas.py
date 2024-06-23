@@ -31,6 +31,7 @@ hora_envio = tiempo_envio.hour
 minuto_envio = tiempo_envio.minute
 cerrar = 3
 
+
 #Saludos
 def obtener_saludo():
     hora_actual = datetime.now().hour

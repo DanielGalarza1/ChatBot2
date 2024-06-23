@@ -13,6 +13,7 @@ else:
     print("Error al obtener los números de teléfono.")
     numeros = []
 
+
 # Obtener el mes actual en español
 meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", 
          "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]

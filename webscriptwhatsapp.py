@@ -4,6 +4,7 @@ import time
 # Lista de números de teléfono
 numeros = ["+593987860206", "+593995583574", "+593987974242"]
 
+
 # Mensaje a enviar
 mensaje = "Hola esto es una prueba"
 
@@ -12,6 +13,7 @@ hora_envio = 20
 minuto_envio = 49
 cerrar= 3
 si = True
+
 
 # Ciclo para enviar el mensaje a cada número
 for numero in numeros:
