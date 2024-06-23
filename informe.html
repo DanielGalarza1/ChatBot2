@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informe de Usuarios y Plataformas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        .date-selector {
+            margin-bottom: 20px;
+        }
+        input[type="date"], button {
+            margin-right: 10px;
+        }
+        #error-message {
+            color: red;
+            font-weight: bold;
+        }
+        #loading {
+            display: none;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Informe de Usuarios y Plataformas</h1>
+        
+        <div class="date-selector">
+            <label for="start-date">Fecha inicial:</label>
+            <input type="date" id="start-date">
+            <label for="end-date">Fecha final:</label>
+            <input type="date" id="end-date">
+            <button onclick="actualizarInforme()">Actualizar</button>
+        </div>
+        
+        <div id="loading">Cargando datos...</div>
+        <div id="error-message"></div>
+        
+        <div id="resumen">
+            <p>Usuarios nuevos en el período: <span id="nuevos-usuarios">0</span></p>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="plataformaChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let usuariosData = [];
+        let plataformaChart;
+        let numerosTelefono = [];
+
+        async function obtenerUsuarios() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/users');
+                if (!response.ok) throw new Error(`Error al obtener los datos. Estado: ${response.status}`);
+                const data = await response.json();
+                usuariosData = data.map(usuario => ({
+                    fecha_creacion: new Date(usuario.fecha_creacion).toISOString().split('T')[0],
+                    nuevo: usuario.nuevo,
+                    plataforma: usuario.plataforma
+                }));
+            } catch (error) {
+                throw new Error('Error al procesar los datos: ' + error.message);
+            }
+        }
+
+        async function obtenerNumerosTelefono() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/usersphone');
+                if (!response.ok) throw new Error(`Error al obtener los números de teléfono. Estado: ${response.status}`);
+                const data = await response.json();
+                numerosTelefono = data.map(item => item.phone);
+            } catch (error) {
+                console.error(error.message);
+                numerosTelefono = [];
+            }
+        }
+
+        async function actualizarInforme() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error-message').textContent = '';
+            
+            try {
+                await obtenerUsuarios();
+                await obtenerNumerosTelefono();
+                document.getElementById('loading').style.display = 'none';
+
+                const startDate = new Date(document.getElementById('start-date').value);
+                const endDate = new Date(document.getElementById('end-date').value);
+                
+                const usuariosFiltrados = usuariosData.filter(usuario => {
+                    const fechaUsuario = new Date(usuario.fecha_creacion);
+                    return fechaUsuario >= startDate && fechaUsuario <= endDate;
+                });
+                
+                const usuariosNuevos = usuariosFiltrados.filter(usuario => usuario.nuevo === "1");
+                document.getElementById('nuevos-usuarios').textContent = usuariosNuevos.length;
+                
+                const plataformas = {};
+                usuariosFiltrados.forEach(usuario => {
+                    plataformas[usuario.plataforma] = (plataformas[usuario.plataforma] || 0) + 1;
+                });
+                
+                actualizarGraficoPlataformas(plataformas);
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error-message').textContent = error.message;
+            }
+        }
+
+        function actualizarGraficoPlataformas(plataformas) {
+            const labels = Object.keys(plataformas);
+            const data = Object.values(plataformas);
+            
+            if (plataformaChart) {
+                plataformaChart.destroy();
+            }
+            
+            const ctx = document.getElementById('plataformaChart').getContext('2d');
+            plataformaChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Usuarios por Plataforma',
+                        data: data,
+                        backgroundColor: [
+                            '#36a2eb', '#ff6384', '#4bc0c0', '#ffcd56', '#ff9f40'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            stepSize: 1
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Usuarios por Plataforma'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Inicializar con fechas por defecto
+        document.getElementById('start-date').valueAsDate = new Date('2024-05-01');
+        document.getElementById('end-date').valueAsDate = new Date('2024-05-31');
+        actualizarInforme();
+    </script>
+</body>
+</html>
